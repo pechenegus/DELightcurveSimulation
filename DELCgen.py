@@ -39,17 +39,17 @@ from astropy.io import fits
 # ------ Distribution Functions ------------------------------------------------
 
 class Mixture_Dist(object):
-    '''
-    Create a mixture distribution using a weighted combination of the functions 
+    """
+    Create a mixture distribution using a weighted combination of the functions
     in the array 'funcs'. The resultant object can both calculate a value
     for the function and be randomly sampled.
-    
+
     inputs:
-        functions (array of functions) 
+        functions (array of functions)
             - list of all of the functions to mix
-        n_args (2-D array) 
+        n_args (2-D array)
             - numerical array of the parameters of each function
-        frozen (list, [int,int], optional) 
+        frozen (list, [int,int], optional)
             - list of the indices of parameters which which should be frozen
               in the resultant function and their values, e.g. [[1,0.5]]
               will freeze the parameter at position 1 to be 0.5
@@ -58,13 +58,13 @@ class Mixture_Dist(object):
               parsing errors), this flag will force it to do so. Can occur
               due to old scipy versions.
     functions:
-        Sample(params,length) 
-            - produce a random sample of length 'length' from the function for 
+        Sample(params,length)
+            - produce a random sample of length 'length' from the function for
               a given set of paramaters.
         Value(x, params)
             - calculate the value of the function at the value(s) x, for
               the paramters given.
-    '''
+    """
 
     def __init__(self, functions, n_args, frozen=None, force_scipy=False):
         self.functions = functions
@@ -74,16 +74,16 @@ class Mixture_Dist(object):
         self.default = False
 
         if functions[0].__module__ == 'scipy.stats._continuous_distns' or \
-                force_scipy == True:
+                force_scipy:
             self.scipy = True
         else:
             self.scipy = False
 
-    def Sample(self, params, length=1):
-        '''
+    def Sample(self, params: list, length: int = 1) -> np.ndarray:
+        """
         Use inverse transform sampling to randomly sample a mixture of any set
         of scipy contiunous (random variate) distributions.
-        
+
         inputs:
             params (array)     - list of free parameters in each function
                                  followed by the weights - e.g.:
@@ -91,9 +91,9 @@ class Mixture_Dist(object):
             length (int)                - Length of the random sample
         outputs:
             sample (array, float)       - The random sample
-        '''
+        """
 
-        if self.scipy == True:
+        if self.scipy:
             cumWeights = np.cumsum(params[-len(self.functions):])
             # random sample for function choice
             mix = np.random.random(size=length) * cumWeights[-1]
@@ -156,20 +156,20 @@ class Mixture_Dist(object):
             return sample
 
     def Value(self, x, params):
-        '''
+        """
         Returns value or array of values from mixture distribution function.
-        
+
         inputs:
-            x (array or float) - numerical array to which the mixture function 
+            x (array or float) - numerical array to which the mixture function
                                  will be applied
             params (array)     - list of free parameters in each function
                                  followed by the weights - e.g.:
                                  [f1_p1,f1_p2,f2_p1,f2_p2,f2_p3,w1,w2]
         outputs:
             data (array)        - output data array
-        '''
+        """
 
-        if self.scipy == True:
+        if self.scipy:
             functions = []
             for f in self.functions:
                 functions.append(f.pdf)
@@ -214,20 +214,20 @@ class Mixture_Dist(object):
 
 
 def BendingPL(v, A, v_bend, a_low, a_high, c):
-    '''
-    Bending power law function - returns power at each value of v, 
+    """
+    Bending power law function - returns power at each value of v,
     where v is an array (e.g. of frequencies)
-    
+
     inputs:
         v (array)       - input values
-        A (float)       - normalisation 
+        A (float)       - normalisation
         v_bend (float)  - bending frequency
         a_low ((float)  - low frequency index
         a_high float)   - high frequency index
         c (float)       - intercept/offset
     output:
         out (array)     - output powers
-    '''
+    """
     numer = v ** -a_low
     denom = 1 + (v / v_bend) ** (a_high - a_low)
     out = A * (numer / denom) + c
@@ -235,9 +235,9 @@ def BendingPL(v, A, v_bend, a_low, a_high, c):
 
 
 def RandAnyDist(f, args, a, b, size=1):
-    '''
+    """
     Generate random numbers from any distribution. Slow.
-    
+
     inputs:
         f (function f(x,**args)) - The distribution from which numbers are drawn
         args (tuple) - The arguments of f (excluding the x input array)
@@ -246,7 +246,7 @@ def RandAnyDist(f, args, a, b, size=1):
                                     returns a single value as default
     outputs:
         out (array) - List of random values drawn from the input distribution
-    '''
+    """
     out = []
     while len(out) < size:
         x = rnd.rand() * (b - a) + a  # random value in x range
@@ -261,20 +261,20 @@ def RandAnyDist(f, args, a, b, size=1):
 
 
 def PDF_Sample(lc):
-    '''
-    Generate random sample the flux histogram of a lightcurve by sampling the 
-    piecewise distribution consisting of the box functions forming the 
+    """
+    Generate random sample the flux histogram of a lightcurve by sampling the
+    piecewise distribution consisting of the box functions forming the
     histogram of the lightcurve's flux.
-    
+
     inputs:
         lc (Lightcurve)
             - Lightcurve whose histogram will be sample
     outputs:
         sample (array, float)
             - Array of data sampled from the lightcurve's flux histogram
-    '''
+    """
 
-    if lc.bins == None:
+    if lc.bins is None:
         lc.bins = OptBins(lc.flux)
 
     pdf = np.histogram(lc.flux, bins=lc.bins)
@@ -291,18 +291,18 @@ def PDF_Sample(lc):
 # -------- PDF Fitting ---------------------------------------------------------
 
 def Min_PDF(params, hist, model, force_scipy=False):
-    '''
+    """
     PDF chi squared function allowing the fitting of a mixture distribution
     using a log normal distribution and a gamma distribution
     to a histogram of a data set.
-    
+
     inputs:
         params (array)   - function variables - kappa, theta, lnmu,lnsig,weight
         hist (array)     - histogram of data set (using numpy.hist)
         force_scipt (bool,optional) - force the function to assume a scipy model
     outputs:
         chi (float) - chi squared
-    '''
+    """
 
     # pdf(x,shape,loc,scale)
 
@@ -317,7 +317,7 @@ def Min_PDF(params, hist, model, force_scipy=False):
             m = model(mids, params)
         elif model.__module__ == 'scipy.stats.distributions' or \
                 model.__module__ == 'scipy.stats._continuous_distns' or \
-                force_scipy == True:
+                force_scipy:
             m = model.pdf
         else:
             m = model(mids, *params)
@@ -330,22 +330,22 @@ def Min_PDF(params, hist, model, force_scipy=False):
 
 
 def OptBins(data, maxM=100):
-    '''
-     Python version of the 'optBINS' algorithm by Knuth et al. (2006) - finds 
-     the optimal number of bins for a one-dimensional data set using the 
+    """
+     Python version of the 'optBINS' algorithm by Knuth et al. (2006) - finds
+     the optimal number of bins for a one-dimensional data set using the
      posterior probability for the number of bins. WARNING sometimes doesn't
      seem to produce a high enough number by some way...
-    
+
      inputs:
          data (array)           - The data set to be binned
          maxM (int, optional)   - The maximum number of bins to consider
-         
+
      outputs:
         maximum (int)           - The optimum number of bins
-    
+
      Ref: K.H. Knuth. 2012. Optimal data-based binning for histograms
      and histogram-based probability density models, Entropy.
-    '''
+    """
 
     N = len(data)
 
@@ -370,10 +370,10 @@ def OptBins(data, maxM=100):
 # --------- PSD fitting --------------------------------------------------------
 
 def PSD_Prob(params, periodogram, model):
-    '''
-    Calculate the log-likelihood (-2ln(L) ) of obtaining a given periodogram 
+    """
+    Calculate the log-likelihood (-2ln(L) ) of obtaining a given periodogram
     for a given PSD, described by a given model.
-    
+
     inputs:
         periodogram (array, 2-column) - lightcurve periodogram and equivalent
                                         frequencies - [frequncies, periodogram]
@@ -382,7 +382,7 @@ def PSD_Prob(params, periodogram, model):
         model (function, optional)    - model PSD function to use
     outputs:
         p (float)                     - probability
-    '''
+    """
 
     psd = model(periodogram[0], *params)  # calculate the psd
 
@@ -392,7 +392,7 @@ def PSD_Prob(params, periodogram, model):
     if even:
         p = 2.0 * np.sum(np.log(psd[:-1]) + (periodogram[1][:-1] / psd[:-1]))
         p_nq = np.log(np.pi * periodogram[1][-1] * psd[-1]) \
-               + 2.0 * (periodogram[1][-1] / psd[-1])
+            + 2.0 * (periodogram[1][-1] / psd[-1])
         p += p_nq
     else:
         p = 2.0 * np.sum(np.log(psd) + (periodogram[1] / psd))
@@ -403,11 +403,11 @@ def PSD_Prob(params, periodogram, model):
 # --------- Standard Deviation estimate ----------------------------------------
 
 def SD_estimate(mean, v_low, v_high, PSDdist, PSDdistArgs):
-    '''
+    """
     Estimate the standard deviation from a PSD model, by integrating between
     frequencies of interest, giving RMS squared variability, and multiplying
     by the mean squared. And square rooting.
-    
+
     inputs:
         mean (float)        - mean of the data
         v_low (float)       - lower frequency bound  of integration
@@ -416,7 +416,7 @@ def SD_estimate(mean, v_low, v_high, PSDdist, PSDdistArgs):
         PSDdistargs (var)   - PSD distribution best fit parameters
     outputs:
         out (float)     - the estimated standard deviation
-    '''
+    """
     i = itg.quad(PSDdist, v_low, v_high, tuple(PSDdistArgs))
     out = [np.sqrt(mean ** 2.0 * i[0]), np.sqrt(mean ** 2.0 * i[1])]
     return out
@@ -426,31 +426,31 @@ def SD_estimate(mean, v_low, v_high, PSDdist, PSDdistArgs):
 
 def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength, \
                  PSDmodel, PSDparams, std=1.0, mean=0.0):
-    '''
-    Generates an artificial lightcurve with the a given power spectral 
+    """
+    Generates an artificial lightcurve with the a given power spectral
     density in frequency space, using the method from Timmer & Koenig, 1995,
     Astronomy & Astrophysics, 300, 707.
 
     inputs:
-        RedNoiseL (int)        - multiple by which simulated LC is lengthened 
+        RedNoiseL (int)        - multiple by which simulated LC is lengthened
                                  compared to data LC to avoid red noise leakage
         aliasTbin (int)        - divisor to avoid aliasing
         randomSeed (int)       - Random number seed
-        tbin (int)           - Sample rate of output lightcurve        
+        tbin (int)           - Sample rate of output lightcurve
         LClength  (int)        - Length of simulated LC
         std (float)            - standard deviation of lightcurve to generate
         mean (float)           - mean amplitude of lightcurve to generate
         PSDmodel (function)    - Function for model used to fit PSD
         PSDparams (various) - Arguments/parameters of best-fitting PSD model
-   
+
     outputs:
-        lightcurve (array)     - array of amplitude values (cnts/flux) with the 
+        lightcurve (array)     - array of amplitude values (cnts/flux) with the
                                  same timing properties as entered, length 1024
-                                 seconds, sampled once per second.  
+                                 seconds, sampled once per second.
         fft (array)            - Fourier transform of the output lightcurve
-        shortPeriodogram (array, 2 columns) - periodogram of the output 
+        shortPeriodogram (array, 2 columns) - periodogram of the output
                                               lightcurve [freq, power]
-        '''
+        """
     # --- create freq array up to the Nyquist freq & equivalent PSD ------------
     frequency = np.arange(1.0, (RedNoiseL * LClength) / 2 + 1) / \
                 (RedNoiseL * LClength * tbin * aliasTbin)
@@ -507,58 +507,58 @@ def EmmanLC(time, RedNoiseL, aliasTbin, RandomSeed, tbin,
     Uses the method from Emmanoulopoulos et al., 2013, Monthly Notices of the
     Royal Astronomical Society, 433, 907. Starts from a lightcurve using the
     Timmer & Koenig (1995, Astronomy & Astrophysics, 300, 707) method, then
-    adjusts a random set of values ordered according to this lightcurve, 
+    adjusts a random set of values ordered according to this lightcurve,
     such that it has the correct PDF and PSD. Using a scipy.stats distribution
     recommended for speed.
-    
+
     inputs:
-        time (array)    
+        time (array)
             - Times from data lightcurve
-        flux (array)    
-            - Fluxes from data lightcurve       
-        RedNoiseL (int) 
-            - multiple by which simulated LC is lengthened compared to the data 
+        flux (array)
+            - Fluxes from data lightcurve
+        RedNoiseL (int)
+            - multiple by which simulated LC is lengthened compared to the data
               LC to avoid red noise leakage
-        aliasTbin (int) 
+        aliasTbin (int)
             - divisor to avoid aliasing
         RandomSeed (int)
             - random number generation seed, for repeatability
-        tbin (int)      
+        tbin (int)
             - lightcurve bin size
-        PSDmodel (fn)   
+        PSDmodel (fn)
             - Function for model used to fit PSD
-        PSDparams (tuple,var) 
-                        
+        PSDparams (tuple,var)
+
             - parameters of best-fitting PSD model
-        PDFmodel (fn,optional) 
+        PDFmodel (fn,optional)
             - Function for model used to fit PDF if not scipy
-        PDFparams (tuple,var) 
-            - Distributions/params of best-fit PDF model(s). If a scipy random 
-              variate is used, this must be in the form: 
+        PDFparams (tuple,var)
+            - Distributions/params of best-fit PDF model(s). If a scipy random
+              variate is used, this must be in the form:
                   ([distributions],[[shape,loc,scale]],[weights])
-        maxIterations (int,optional) 
-            - The maximum number of iterations before the routine gives up 
+        maxIterations (int,optional)
+            - The maximum number of iterations before the routine gives up
               (default = 1000)
-        verbose (bool, optional) 
-            - If true, will give you some idea what it's doing, by telling you 
+        verbose (bool, optional)
+            - If true, will give you some idea what it's doing, by telling you
               (default = False)
-        LClength  (int) 
-            - Length of simulated LC        
+        LClength  (int)
+            - Length of simulated LC
         histSample (Lightcurve, optional)
-            - If 
- 
-    outputs: 
-        surrogate (array, 2 column)     
+            - If
+
+    outputs:
+        surrogate (array, 2 column)
                         - simulated lightcurve [time,flux]
-        PSDlast (array, 2 column)       
+        PSDlast (array, 2 column)
                         - simulated lighturve PSD [freq,power]
-        shortLC (array, 2 column)       
+        shortLC (array, 2 column)
                         - T&K lightcurve [time,flux]
-        periodogram (array, 2 column)   
+        periodogram (array, 2 column)
                         - T&K lighturve PSD [freq,power]
-        ffti (array)                    
+        ffti (array)
                         - Fourier transform of surrogate LC
-        LClength (int)              
+        LClength (int)
                         - length of resultant LC if not same as input
     '''
 
@@ -1686,7 +1686,7 @@ def Simulate_DE_Lightcurve(PSDmodel, PSDparams, PDFmodel=None, PDFparams=None,
 
         lc.psdModel = PSDmodel
         lc.psdFit = {'x': PSDparams}
-        if histSample == False:
+        if not histSample:
             lc.pdfModel = PDFmodel
             lc.pdfFit = {'x': PDFparams}
 
