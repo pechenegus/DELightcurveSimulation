@@ -1,4 +1,3 @@
-
 """
 LCgenerationDE.py
 
@@ -29,9 +28,9 @@ import numpy.random as rnd
 import scipy.optimize as op
 import scipy.special as sp
 from astropy.io import fits
- 
 
-#__all__ = ['Mixture_Dist', 'BendingPL', 'RandAnyDist', 'Min_PDF','OptBins',
+
+# __all__ = ['Mixture_Dist', 'BendingPL', 'RandAnyDist', 'Min_PDF','OptBins',
 #            'PSD_Prob','SD_estimate','TimmerKoenig','EmmanLC','Lightcurve',
 #            'Comparison_Plots','Load_Lightcurve','Simulate_TK_Lightcurve',
 #            'Simulate_DE_Lightcurve']
@@ -40,7 +39,6 @@ from astropy.io import fits
 # ------ Distribution Functions ------------------------------------------------
 
 class Mixture_Dist(object):
-   
     '''
     Create a mixture distribution using a weighted combination of the functions 
     in the array 'funcs'. The resultant object can both calculate a value
@@ -67,21 +65,21 @@ class Mixture_Dist(object):
             - calculate the value of the function at the value(s) x, for
               the paramters given.
     '''
-    
-    def __init__(self,functions,n_args,frozen=None, force_scipy=False):
+
+    def __init__(self, functions, n_args, frozen=None, force_scipy=False):
         self.functions = functions
-        self.n_args = n_args  
-        self.frozen = frozen  
+        self.n_args = n_args
+        self.frozen = frozen
         self.__name__ = 'Mixture_Dist'
-        self.default  = False
+        self.default = False
 
         if functions[0].__module__ == 'scipy.stats._continuous_distns' or \
                 force_scipy == True:
             self.scipy = True
         else:
             self.scipy = False
-        
-    def Sample(self,params,length=1):
+
+    def Sample(self, params, length=1):
         '''
         Use inverse transform sampling to randomly sample a mixture of any set
         of scipy contiunous (random variate) distributions.
@@ -94,70 +92,70 @@ class Mixture_Dist(object):
         outputs:
             sample (array, float)       - The random sample
         '''
-        
-        if self.scipy == True:        
+
+        if self.scipy == True:
             cumWeights = np.cumsum(params[-len(self.functions):])
             # random sample for function choice
-            mix    = np.random.random(size=length)*cumWeights[-1]  
+            mix = np.random.random(size=length) * cumWeights[-1]
 
             sample = np.array([])
-            
-            args = []        
-            
+
+            args = []
+
             if self.frozen:
                 n = self.n_args[0] - len(self.frozen[0][0])
                 par = params[:n]
                 if len(self.frozen[0]) > 0:
                     for f in range(len(self.frozen[0][0])):
-                        par = np.insert(par,self.frozen[0][0][f]-1,
-                                                           self.frozen[0][1][f])
+                        par = np.insert(par, self.frozen[0][0][f] - 1,
+                                        self.frozen[0][1][f])
             else:
                 n = self.n_args[0]
-                par = params[:n]    
-                
+                par = params[:n]
+
             args.append(par)
-            
-            for i in range(1,len(self.functions)):
+
+            for i in range(1, len(self.functions)):
                 if self.frozen:
                     if len(self.frozen[i]) > 0:
                         n_next = n + self.n_args[i] - len(self.frozen[i][0])
                         par = params[n:n_next]
                         if len(self.frozen[i]) > 0:
-                                for f in range(len(self.frozen[i][0])):
-                                    par = np.insert(par,
-                                    self.frozen[i][0][f]-1,self.frozen[i][1][f])
+                            for f in range(len(self.frozen[i][0])):
+                                par = np.insert(par,
+                                                self.frozen[i][0][f] - 1, self.frozen[i][1][f])
                         else:
-                            n_next = n+self.n_args[i]
-                            par = params[n:n_next] 
+                            n_next = n + self.n_args[i]
+                            par = params[n:n_next]
                     else:
-                        n_next = n+self.n_args[i]
+                        n_next = n + self.n_args[i]
                         par = params[n:n_next]
                 args.append(par)
-                    
+
             # cycle through each distribution according to probability weights
-            for i in range(len(self.functions)): 
+            for i in range(len(self.functions)):
                 if i > 0:
-                    
+
                     sample = np.append(sample, self.functions[i].rvs(args[i][0],
-                                    loc=args[i][1], scale=args[i][2],
-                    size=len(np.where((mix>cumWeights[i-1])*
-                                                    (mix<=cumWeights[i]))[0]))) 
-                    
+                                                                     loc=args[i][1], scale=args[i][2],
+                                                                     size=len(np.where((mix > cumWeights[i - 1]) *
+                                                                                       (mix <= cumWeights[i]))[0])))
+
                 else:
                     sample = np.append(sample, self.functions[i].rvs(args[i][0],
-                                 loc=args[i][1],scale=args[i][2],
-                                   size=len(np.where((mix<=cumWeights[i]))[0])))
-                    
+                                                                     loc=args[i][1], scale=args[i][2],
+                                                                     size=len(np.where((mix <= cumWeights[i]))[0])))
+
             # randomly mix sample
             np.random.shuffle(sample)
-            
+
             # return single values as floats, not arrays
             if len(sample) == 1:
                 sample = sample[0]
 
-            return sample 
-    
-    def Value(self,x,params):
+            return sample
+
+    def Value(self, x, params):
         '''
         Returns value or array of values from mixture distribution function.
         
@@ -171,54 +169,51 @@ class Mixture_Dist(object):
             data (array)        - output data array
         '''
 
-        if self.scipy == True:   
+        if self.scipy == True:
             functions = []
             for f in self.functions:
                 functions.append(f.pdf)
         else:
             functions = self.functions
-        
-        
+
         n = self.n_args[0]
-        
+
         if self.frozen:
             n = self.n_args[0] - len(self.frozen[0][0])
             par = params[:n]
             if len(self.frozen[0]) > 0:
                 for f in range(len(self.frozen[0][0])):
-                    par = np.insert(par,self.frozen[0][0][f]-1,
-                                                           self.frozen[0][1][f])
+                    par = np.insert(par, self.frozen[0][0][f] - 1,
+                                    self.frozen[0][1][f])
         else:
             n = self.n_args[0]
             par = params[:n]
 
-        data = np.array(functions[0](x,*par))*params[-len(functions)]        
-        for i in range(1,len(functions)):
-            
+        data = np.array(functions[0](x, *par)) * params[-len(functions)]
+        for i in range(1, len(functions)):
+
             if self.frozen:
                 if len(self.frozen[i]) > 0:
                     n_next = n + self.n_args[i] - len(self.frozen[i][0])
                     par = params[n:n_next]
                     if len(self.frozen[i]) > 0:
                         for f in range(len(self.frozen[i][0])):
-                            par = np.insert(par,self.frozen[i][0][f]-1,
-                                                           self.frozen[i][1][f])
+                            par = np.insert(par, self.frozen[i][0][f] - 1,
+                                            self.frozen[i][1][f])
                 else:
-                    n_next = n+self.n_args[i]
-                    par = params[n:n_next] 
+                    n_next = n + self.n_args[i]
+                    par = params[n:n_next]
             else:
-                n_next = n+self.n_args[i]
-                par = params[n:n_next]            
-            
-            
-            data += np.array(functions[i](x,*par))*params[-len(functions)+i] 
+                n_next = n + self.n_args[i]
+                par = params[n:n_next]
+
+            data += np.array(functions[i](x, *par)) * params[-len(functions) + i]
             n = n_next
         data /= np.sum(params[-len(functions):])
         return data
-    
 
 
-def BendingPL(v,A,v_bend,a_low,a_high,c):
+def BendingPL(v, A, v_bend, a_low, a_high, c):
     '''
     Bending power law function - returns power at each value of v, 
     where v is an array (e.g. of frequencies)
@@ -233,12 +228,13 @@ def BendingPL(v,A,v_bend,a_low,a_high,c):
     output:
         out (array)     - output powers
     '''
-    numer = v**-a_low
-    denom = 1 + (v/v_bend)**(a_high-a_low)
-    out = A * (numer/denom) + c
+    numer = v ** -a_low
+    denom = 1 + (v / v_bend) ** (a_high - a_low)
+    out = A * (numer / denom) + c
     return out
 
-def RandAnyDist(f,args,a,b,size=1):
+
+def RandAnyDist(f, args, a, b, size=1):
     '''
     Generate random numbers from any distribution. Slow.
     
@@ -252,16 +248,17 @@ def RandAnyDist(f,args,a,b,size=1):
         out (array) - List of random values drawn from the input distribution
     '''
     out = []
-    while len(out) < size:    
-        x = rnd.rand()*(b-a) + a  # random value in x range
-        v = f(x,*args)            # equivalent probability
-        p = rnd.rand()      # random number
+    while len(out) < size:
+        x = rnd.rand() * (b - a) + a  # random value in x range
+        v = f(x, *args)  # equivalent probability
+        p = rnd.rand()  # random number
         if p <= v:
-            out.append(x)   # add to value sample if random number < probability
+            out.append(x)  # add to value sample if random number < probability
     if size == 1:
         return out[0]
     else:
         return out
+
 
 def PDF_Sample(lc):
     '''
@@ -276,23 +273,24 @@ def PDF_Sample(lc):
         sample (array, float)
             - Array of data sampled from the lightcurve's flux histogram
     '''
-    
+
     if lc.bins == None:
         lc.bins = OptBins(lc.flux)
-    
-    pdf = np.histogram(lc.flux,bins=lc.bins)
-    chances = pdf[0]/float(sum(pdf[0]))
+
+    pdf = np.histogram(lc.flux, bins=lc.bins)
+    chances = pdf[0] / float(sum(pdf[0]))
     nNumbers = len(lc.flux)
-    
+
     sample = np.random.choice(len(chances), nNumbers, p=chances)
-    
-    sample = np.random.uniform(pdf[1][:-1][sample],pdf[1][1:][sample])
+
+    sample = np.random.uniform(pdf[1][:-1][sample], pdf[1][1:][sample])
 
     return sample
 
-#-------- PDF Fitting ---------------------------------------------------------
 
-def Min_PDF(params,hist,model,force_scipy=False):
+# -------- PDF Fitting ---------------------------------------------------------
+
+def Min_PDF(params, hist, model, force_scipy=False):
     '''
     PDF chi squared function allowing the fitting of a mixture distribution
     using a log normal distribution and a gamma distribution
@@ -311,26 +309,27 @@ def Min_PDF(params,hist,model,force_scipy=False):
     # gamma - shape = kappa,loc = 0, scale = theta
     # lognorm - shape = sigma, loc = 0, scale = exp(mu)
 
-    mids = (hist[1][:-1]+hist[1][1:])/2.0
+    mids = (hist[1][:-1] + hist[1][1:]) / 2.0
 
     try:
         if model.__name__ == 'Mixture_Dist':
             model = model.Value
-            m = model(mids,params)
+            m = model(mids, params)
         elif model.__module__ == 'scipy.stats.distributions' or \
-            model.__module__ == 'scipy.stats._continuous_distns' or \
+                model.__module__ == 'scipy.stats._continuous_distns' or \
                 force_scipy == True:
-            m = model.pdf    
-        else:    
-            m = model(mids,*params)
+            m = model.pdf
+        else:
+            m = model(mids, *params)
     except AttributeError:
-        m = model(mids,*params)
-    
-    chi = (hist[0] - m)**2.0
-    
+        m = model(mids, *params)
+
+    chi = (hist[0] - m) ** 2.0
+
     return np.sum(chi)
- 
-def OptBins(data,maxM=100):
+
+
+def OptBins(data, maxM=100):
     '''
      Python version of the 'optBINS' algorithm by Knuth et al. (2006) - finds 
      the optimal number of bins for a one-dimensional data set using the 
@@ -347,30 +346,30 @@ def OptBins(data,maxM=100):
      Ref: K.H. Knuth. 2012. Optimal data-based binning for histograms
      and histogram-based probability density models, Entropy.
     '''
-    
+
     N = len(data)
-    
+
     # loop through the different numbers of bins
     # and compute the posterior probability for each.
-    
+
     logp = np.zeros(maxM)
-    
-    for M in range(1,maxM+1):
-        n = np.histogram(data,bins=M)[0] # Bin the data (equal width bins)
-        
+
+    for M in range(1, maxM + 1):
+        n = np.histogram(data, bins=M)[0]  # Bin the data (equal width bins)
+
         # calculate posterior probability
-        part1 = N * np.log(M) + sp.gammaln(M/2.0)
-        part2 = - M * sp.gammaln(0.5)  - sp.gammaln(N + M/2.0)
-        part3 = np.sum(sp.gammaln(n+0.5))
-        logp[M-1] = part1 + part2 + part3 # add to array of posteriors
+        part1 = N * np.log(M) + sp.gammaln(M / 2.0)
+        part2 = - M * sp.gammaln(0.5) - sp.gammaln(N + M / 2.0)
+        part3 = np.sum(sp.gammaln(n + 0.5))
+        logp[M - 1] = part1 + part2 + part3  # add to array of posteriors
 
-    maximum = np.argmax(logp) + 1 # find bin number of maximum probability
-    return maximum + 10 
-    
+    maximum = np.argmax(logp) + 1  # find bin number of maximum probability
+    return maximum + 10
 
-#--------- PSD fitting --------------------------------------------------------
 
-def PSD_Prob(params,periodogram,model):
+# --------- PSD fitting --------------------------------------------------------
+
+def PSD_Prob(params, periodogram, model):
     '''
     Calculate the log-likelihood (-2ln(L) ) of obtaining a given periodogram 
     for a given PSD, described by a given model.
@@ -385,26 +384,25 @@ def PSD_Prob(params,periodogram,model):
         p (float)                     - probability
     '''
 
-    psd = model(periodogram[0],*params) # calculate the psd
+    psd = model(periodogram[0], *params)  # calculate the psd
 
-    even = True   
-    
+    even = True
+
     # calculate the likelihoods for each value THESE LINES CAUSE RUNTIME ERRORS
     if even:
-        p = 2.0 * np.sum( np.log(psd[:-1]) + (periodogram[1][:-1]/psd[:-1]) )
-        p_nq = np.log(np.pi * periodogram[1][-1]*psd[-1]) \
-                                         + 2.0 * (periodogram[1][-1]/psd[-1])
+        p = 2.0 * np.sum(np.log(psd[:-1]) + (periodogram[1][:-1] / psd[:-1]))
+        p_nq = np.log(np.pi * periodogram[1][-1] * psd[-1]) \
+               + 2.0 * (periodogram[1][-1] / psd[-1])
         p += p_nq
     else:
-        p = 2.0 * np.sum( np.log(psd) + (periodogram[1]/psd) )
-        
+        p = 2.0 * np.sum(np.log(psd) + (periodogram[1] / psd))
+
     return p
 
 
-         
-#--------- Standard Deviation estimate ----------------------------------------
- 
-def SD_estimate(mean,v_low,v_high,PSDdist,PSDdistArgs):
+# --------- Standard Deviation estimate ----------------------------------------
+
+def SD_estimate(mean, v_low, v_high, PSDdist, PSDdistArgs):
     '''
     Estimate the standard deviation from a PSD model, by integrating between
     frequencies of interest, giving RMS squared variability, and multiplying
@@ -419,14 +417,15 @@ def SD_estimate(mean,v_low,v_high,PSDdist,PSDdistArgs):
     outputs:
         out (float)     - the estimated standard deviation
     '''
-    i = itg.quad(PSDdist,v_low,v_high,tuple(PSDdistArgs))
-    out = [np.sqrt(mean**2.0 * i[0]),np.sqrt(mean**2.0 * i[1])]
+    i = itg.quad(PSDdist, v_low, v_high, tuple(PSDdistArgs))
+    out = [np.sqrt(mean ** 2.0 * i[0]), np.sqrt(mean ** 2.0 * i[1])]
     return out
 
-#------------------ Lightcurve Simulation Functions ---------------------------
 
-def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength,\
-                    PSDmodel, PSDparams,std=1.0, mean=0.0):    
+# ------------------ Lightcurve Simulation Functions ---------------------------
+
+def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength, \
+                 PSDmodel, PSDparams, std=1.0, mean=0.0):
     '''
     Generates an artificial lightcurve with the a given power spectral 
     density in frequency space, using the method from Timmer & Koenig, 1995,
@@ -451,56 +450,57 @@ def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength,\
         fft (array)            - Fourier transform of the output lightcurve
         shortPeriodogram (array, 2 columns) - periodogram of the output 
                                               lightcurve [freq, power]
-        '''                    
+        '''
     # --- create freq array up to the Nyquist freq & equivalent PSD ------------
-    frequency = np.arange(1.0, (RedNoiseL*LClength)/2 +1)/ \
-                                            (RedNoiseL*LClength*tbin*aliasTbin)
-    powerlaw = PSDmodel(frequency,*PSDparams)
+    frequency = np.arange(1.0, (RedNoiseL * LClength) / 2 + 1) / \
+                (RedNoiseL * LClength * tbin * aliasTbin)
+    powerlaw = PSDmodel(frequency, *PSDparams)
 
     # -------- Add complex Gaussian noise to PL --------------------------------
     rnd.seed(randomSeed)
-    real = (np.sqrt(powerlaw*0.5))*rnd.normal(0,1,((RedNoiseL*LClength)/2))
-    imag = (np.sqrt(powerlaw*0.5))*rnd.normal(0,1,((RedNoiseL*LClength)/2))
-    positive = np.vectorize(complex)(real,imag) # array of +ve, complex nos
-    noisypowerlaw = np.append(positive,positive.conjugate()[::-1])
-    znoisypowerlaw = np.insert(noisypowerlaw,0,complex(0.0,0.0)) # add 0
+    real = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) / 2))
+    imag = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) / 2))
+    positive = np.vectorize(complex)(real, imag)  # array of +ve, complex nos
+    noisypowerlaw = np.append(positive, positive.conjugate()[::-1])
+    znoisypowerlaw = np.insert(noisypowerlaw, 0, complex(0.0, 0.0))  # add 0
 
     # --------- Fourier transform the noisy power law --------------------------
     inversefourier = np.fft.ifft(znoisypowerlaw)  # should be ONLY  real numbers
-    longlightcurve = inversefourier.real       # take real part of the transform
- 
+    longlightcurve = inversefourier.real  # take real part of the transform
+
     # extract random cut and normalise output lightcurve, 
     # produce fft & periodogram
     if RedNoiseL == 1:
         lightcurve = longlightcurve
     else:
-        extract = rnd.randint(LClength-1,RedNoiseL*LClength - LClength)
-        lightcurve = np.take(longlightcurve,range(extract,extract + LClength))
+        extract = rnd.randint(LClength - 1, RedNoiseL * LClength - LClength)
+        lightcurve = np.take(longlightcurve, range(extract, extract + LClength))
 
-    if mean: 
-        lightcurve = lightcurve-np.mean(lightcurve)
+    if mean:
+        lightcurve = lightcurve - np.mean(lightcurve)
     if std:
-        lightcurve = (lightcurve/np.std(lightcurve))*std
+        lightcurve = (lightcurve / np.std(lightcurve)) * std
     if mean:
         lightcurve += mean
 
     fft = ft.fft(lightcurve)
 
-    periodogram = np.absolute(fft)**2.0 * ((2.0*tbin*aliasTbin*RedNoiseL)/\
-                   (LClength*(np.mean(lightcurve)**2)))   
-    shortPeriodogram = np.take(periodogram,range(1,LClength/2 +1))
-    #shortFreq = np.take(frequency,range(1,LClength/2 +1))
-    shortFreq = np.arange(1.0, (LClength)/2 +1)/ (LClength*tbin)
-    shortPeriodogram = [shortFreq,shortPeriodogram]
+    periodogram = np.absolute(fft) ** 2.0 * ((2.0 * tbin * aliasTbin * RedNoiseL) / \
+                                             (LClength * (np.mean(lightcurve) ** 2)))
+    shortPeriodogram = np.take(periodogram, range(1, LClength / 2 + 1))
+    # shortFreq = np.take(frequency,range(1,LClength/2 +1))
+    shortFreq = np.arange(1.0, (LClength) / 2 + 1) / (LClength * tbin)
+    shortPeriodogram = [shortFreq, shortPeriodogram]
 
     return lightcurve, fft, shortPeriodogram
 
+
 # The Emmanoulopoulos Loop
 
-def EmmanLC(time,RedNoiseL,aliasTbin,RandomSeed,tbin,
-              PSDmodel, PSDparams, PDFmodel=None, PDFparams=None,maxFlux=None,
-                    maxIterations=1000,verbose=False, LClength=None, \
-                        force_scipy=False,histSample=None):
+def EmmanLC(time, RedNoiseL, aliasTbin, RandomSeed, tbin,
+            PSDmodel, PSDparams, PDFmodel=None, PDFparams=None, maxFlux=None,
+            maxIterations=1000, verbose=False, LClength=None, \
+            force_scipy=False, histSample=None):
     '''
     Produces a simulated lightcurve with the same power spectral density, mean,
     standard deviation and probability density function as those supplied.
@@ -564,43 +564,43 @@ def EmmanLC(time,RedNoiseL,aliasTbin,RandomSeed,tbin,
 
     if LClength != None:
         length = LClength
-        time = np.arange(0,tbin*LClength,tbin)
+        time = np.arange(0, tbin * LClength, tbin)
     else:
         length = len(time)
 
     ampAdj = None
-    
+
     # Produce Timmer & Koenig simulated LC
     if verbose:
-        print "Running Timmer & Koening..."
-        
-    tries = 0      
+        print("Running Timmer & Koening...")
+
+    tries = 0
     success = False
-    
+
     if histSample:
         mean = np.mean(histSample.mean)
     else:
         mean = 1.0
-    
+
     while success == False and tries < 5:
         try:
             if LClength:
                 shortLC, fft, periodogram = \
-                    TimmerKoenig(RedNoiseL,aliasTbin,RandomSeed,tbin,LClength,
-                                             PSDmodel,PSDparams,mean=1.0)
-                success = True               
+                    TimmerKoenig(RedNoiseL, aliasTbin, RandomSeed, tbin, LClength,
+                                 PSDmodel, PSDparams, mean=1.0)
+                success = True
             else:
                 shortLC, fft, periodogram = \
-                    TimmerKoenig(RedNoiseL,aliasTbin,RandomSeed,tbin,len(time),
-                                             PSDmodel,PSDparams,mean=1.0)
+                    TimmerKoenig(RedNoiseL, aliasTbin, RandomSeed, tbin, len(time),
+                                 PSDmodel, PSDparams, mean=1.0)
                 success = True
         # This has been fixed and should never happen now in theory...
         except IndexError:
             tries += 1
-            print "Simulation failed for some reason (IndexError) - restarting..."
+            print("Simulation failed for some reason (IndexError) - restarting...")
 
-    shortLC = [np.arange(len(shortLC))*tbin, shortLC]
-    
+    shortLC = [np.arange(len(shortLC)) * tbin, shortLC]
+
     # Produce random distrubtion from PDF, up to max flux of data LC
     # use inverse transform sampling if a scipy dist
     if histSample:
@@ -615,73 +615,74 @@ def EmmanLC(time,RedNoiseL,aliasTbin,RandomSeed,tbin,
             mix = False
         try:
             if PDFmodel.__module__ == 'scipy.stats.distributions' or \
-                PDFmodel.__module__ == 'scipy.stats._continuous_distns' or \
+                    PDFmodel.__module__ == 'scipy.stats._continuous_distns' or \
                     force_scipy == True:
                 scipy = True
         except AttributeError:
             scipy = False
-    
-        if mix:     
-            if verbose: 
-                print "Inverse tranform sampling..."
-            dist = PDFmodel.Sample(PDFparams,length)
+
+        if mix:
+            if verbose:
+                print("Inverse tranform sampling...")
+            dist = PDFmodel.Sample(PDFparams, length)
         elif scipy:
-            if verbose: 
-                print "Inverse tranform sampling..."
-            dist = PDFmodel.rvs(*PDFparams,size=length)
-            
-        else: # else use rejection
-            if verbose: 
-                print "Rejection sampling... (slow!)"
+            if verbose:
+                print("Inverse tranform sampling...")
+            dist = PDFmodel.rvs(*PDFparams, size=length)
+
+        else:  # else use rejection
+            if verbose:
+                print("Rejection sampling... (slow!)")
             if maxFlux == None:
                 maxFlux = 1
-            dist = RandAnyDist(PDFmodel,PDFparams,0,max(maxFlux)*1.2,length)
+            dist = RandAnyDist(PDFmodel, PDFparams, 0, max(maxFlux) * 1.2, length)
             dist = np.array(dist)
-        
+
     if verbose:
-        print "mean:",np.mean(dist)
-    sortdist = dist[np.argsort(dist)] # sort!
-    
+        print("mean:", np.mean(dist))
+    sortdist = dist[np.argsort(dist)]  # sort!
+
     # Iterate over the random sample until its PSD (and PDF) match the data
     if verbose:
-        print "Iterating..."
+        print("Iterating...")
     i = 0
     oldSurrogate = np.array([-1])
     surrogate = np.array([1])
-    
-    while i < maxIterations and np.array_equal(surrogate,oldSurrogate) == False:
-    
-        oldSurrogate = surrogate
-    
-        if i == 0:
-            surrogate = [time, dist] # start with random distribution from PDF
-        else:
-            surrogate = [time,ampAdj]#
-            
-        ffti = ft.fft(surrogate[1])
-        
-        PSDlast = ((2.0*tbin)/(length*(mean**2))) *np.absolute(ffti)**2
-        PSDlast = [periodogram[0],np.take(PSDlast,range(1,length/2 +1))]
-        
-        fftAdj = np.absolute(fft)*(np.cos(np.angle(ffti)) \
-                                    + 1j*np.sin(np.angle(ffti)))  #adjust fft
-        LCadj = ft.ifft(fftAdj)
-        LCadj = [time/tbin,LCadj]
 
-        PSDLCAdj = ((2.0*tbin)/(length*np.mean(LCadj)**2.0)) \
-                                                 * np.absolute(ft.fft(LCadj))**2
-        PSDLCAdj = [periodogram[0],np.take(PSDLCAdj, range(1,length/2 +1))]
+    while i < maxIterations and np.array_equal(surrogate, oldSurrogate) == False:
+
+        oldSurrogate = surrogate
+
+        if i == 0:
+            surrogate = [time, dist]  # start with random distribution from PDF
+        else:
+            surrogate = [time, ampAdj]  #
+
+        ffti = ft.fft(surrogate[1])
+
+        PSDlast = ((2.0 * tbin) / (length * (mean ** 2))) * np.absolute(ffti) ** 2
+        PSDlast = [periodogram[0], np.take(PSDlast, range(1, length / 2 + 1))]
+
+        fftAdj = np.absolute(fft) * (np.cos(np.angle(ffti)) \
+                                     + 1j * np.sin(np.angle(ffti)))  # adjust fft
+        LCadj = ft.ifft(fftAdj)
+        LCadj = [time / tbin, LCadj]
+
+        PSDLCAdj = ((2.0 * tbin) / (length * np.mean(LCadj) ** 2.0)) \
+                   * np.absolute(ft.fft(LCadj)) ** 2
+        PSDLCAdj = [periodogram[0], np.take(PSDLCAdj, range(1, length / 2 + 1))]
         sortIndices = np.argsort(LCadj[1])
         sortPos = np.argsort(sortIndices)
         ampAdj = sortdist[sortPos]
-        
+
         i += 1
     if verbose:
-        print "Converged in {} iterations".format(i)
-    
+        print("Converged in {} iterations".format(i))
+
     return surrogate, PSDlast, shortLC, periodogram, ffti
 
-#--------- Lightcurve Class & associated functions -----------------------------
+
+# --------- Lightcurve Class & associated functions -----------------------------
 
 class Lightcurve(object):
     '''
@@ -732,26 +733,27 @@ class Lightcurve(object):
         Save_Lightcurve()
             - Save the lightcurve to a txt file.
     '''
-    def __init__(self,time,flux,tbin,errors=None):
-         self.time = time
-         self.flux  = flux
-         self.errors = errors
-         self.length = len(time)
-         self.freq = np.arange(1, self.length/2.0 + 1)/(self.length*tbin)
-         self.psd = None 
-         self.mean = np.mean(flux)
-         self.std_est = None
-         self.std = np.std(flux) 
-         self.tbin = tbin
-         self.fft = None
-         self.periodogram = None
-         self.pdfFit = None
-         self.psdFit = None
-         self.psdModel = None
-         self.pdfModel = None
-         self.bins = None
 
-    def STD_Estimate(self,PSDdist=None,PSDdistArgs=None):
+    def __init__(self, time, flux, tbin, errors=None):
+        self.time = time
+        self.flux = flux
+        self.errors = errors
+        self.length = len(time)
+        self.freq = np.arange(1, self.length / 2.0 + 1) / (self.length * tbin)
+        self.psd = None
+        self.mean = np.mean(flux)
+        self.std_est = None
+        self.std = np.std(flux)
+        self.tbin = tbin
+        self.fft = None
+        self.periodogram = None
+        self.pdfFit = None
+        self.psdFit = None
+        self.psdModel = None
+        self.pdfModel = None
+        self.bins = None
+
+    def STD_Estimate(self, PSDdist=None, PSDdistArgs=None):
         '''
         Set and return standard deviation estimate from a given PSD, using the 
         frequency range of the lightcurve.
@@ -768,16 +770,16 @@ class Lightcurve(object):
         '''
         if PSDdist == None:
             if self.psdModel == None:
-                print "Fitting PSD for standard deviation estimation..."
+                print("Fitting PSD for standard deviation estimation...")
                 self.Fit_PSD(verbose=False)
-                
+
             PSDdist = self.psdModel
             PSDdistArgs = self.psdFit['x']
-        
-        self.std_est = SD_estimate(self.mean,self.freq[0],self.freq[-1],PSDdist,PSDdistArgs)[0]
-        return self.std_est  
 
-    def PSD(self,PSDdist,PSDdistArgs):   
+        self.std_est = SD_estimate(self.mean, self.freq[0], self.freq[-1], PSDdist, PSDdistArgs)[0]
+        return self.std_est
+
+    def PSD(self, PSDdist, PSDdistArgs):
         '''
         DEPRECATED
         Set and return the power spectral density from a given model, using the 
@@ -789,7 +791,7 @@ class Lightcurve(object):
         outputs:
             psd (array)         - The calculated PSD
         '''
-        self.psd = PSDdist(self.freq,*PSDdistArgs)
+        self.psd = PSDdist(self.freq, *PSDdistArgs)
         return self.psd
 
     def Fourier_Transform(self):
@@ -799,9 +801,9 @@ class Lightcurve(object):
         outputs:
             fft (array) - The Fourier transform of the lightcurve
         '''
-        self.fft = ft.fft(self.flux) # 1D Fourier Transform (as time-binned)
+        self.fft = ft.fft(self.flux)  # 1D Fourier Transform (as time-binned)
         return self.fft
-    
+
     def Periodogram(self):
         '''
         Calculate, set and return the Periodogram of the lightcurve. Does the
@@ -812,19 +814,19 @@ class Lightcurve(object):
         '''
         if self.fft == None:
             self.Fourier_Transform()
-        periodogram = ((2.0*self.tbin)/(self.length*(self.mean**2)))\
-                            * np.absolute(np.real(self.fft))**2
-        freq = np.arange(1, self.length/2 + 1).astype(float)/\
-                                                         (self.length*self.tbin)
-        shortPeriodogram = np.take(periodogram,np.arange(1,self.length/2 +1))
-        self.periodogram = [freq,shortPeriodogram]
+        periodogram = ((2.0 * self.tbin) / (self.length * (self.mean ** 2))) \
+                      * np.absolute(np.real(self.fft)) ** 2
+        freq = np.arange(1, self.length / 2 + 1).astype(float) / \
+               (self.length * self.tbin)
+        shortPeriodogram = np.take(periodogram, np.arange(1, self.length / 2 + 1))
+        self.periodogram = [freq, shortPeriodogram]
 
         return self.periodogram
-    
+
     def Set_PSD_Fit(self, model, params):
         self.psdModel = model
-        self.psdFit = dict([('x',np.array(params))])
-    
+        self.psdFit = dict([('x', np.array(params))])
+
     def Set_PDF_Fit(self, model, params=None):
         if model == None:
             self.pdfModel = None
@@ -832,10 +834,10 @@ class Lightcurve(object):
         else:
             self.pdfModel = model
             if params:
-                self.pdfFit = dict([('x',np.array(params))])
-        
-    def Fit_PSD(self, initial_params= [1, 0.001, 1.5, 2.5, 0], 
-                model = BendingPL, fit_method='Nelder-Mead',n_iter=1000,
+                self.pdfFit = dict([('x', np.array(params))])
+
+    def Fit_PSD(self, initial_params=[1, 0.001, 1.5, 2.5, 0],
+                model=BendingPL, fit_method='Nelder-Mead', n_iter=1000,
                 verbose=True):
         '''
         Fit the PSD of the lightcurve with a given model. The result
@@ -869,40 +871,39 @@ class Lightcurve(object):
         '''
         if self.periodogram == None:
             self.Periodogram()
-          
-        minimizer_kwargs = {"args":(self.periodogram,model),"method":fit_method}
+
+        minimizer_kwargs = {"args": (self.periodogram, model), "method": fit_method}
         m = op.basinhopping(PSD_Prob, initial_params,
-                                 minimizer_kwargs=minimizer_kwargs,niter=n_iter)
-         
+                            minimizer_kwargs=minimizer_kwargs, niter=n_iter)
+
         if m['message'][0] == \
-           'requested number of basinhopping iterations completed successfully':
-            
+                'requested number of basinhopping iterations completed successfully':
+
             if verbose:
-                print "\n### Fit successful: ###"
-                #A,v_bend,a_low,a_high,c
-                
+                print("\n### Fit successful: ###")
+                # A,v_bend,a_low,a_high,c
+
                 if model == BendingPL:
-                    print "Normalisation: {}".format(m['x'][0])
-                    print "Bend frequency: {}".format(m['x'][1])
-                    print "Low frequency index: {}".format(m['x'][2])
-                    print "high frequency index: {}".format(m['x'][3])
-                    print "Offset: {}".format(m['x'][4])
+                    print("Normalisation: {}".format(m['x'][0]))
+                    print("Bend frequency: {}".format(m['x'][1]))
+                    print("Low frequency index: {}".format(m['x'][2]))
+                    print("high frequency index: {}".format(m['x'][3]))
+                    print("Offset: {}".format(m['x'][4]))
 
                 else:
                     for p in range(len(m['x'])):
-                        print "Parameter {}: {}".format(p+1,m['x'][p])
-            
-            self.psdFit = m 
+                        print("Parameter {}: {}".format(p + 1, m['x'][p]))
+
+            self.psdFit = m
             self.psdModel = model
 
         else:
-            print "#### FIT FAILED ####"
-            print "Fit parameters not assigned."
-            print "Try different initial parameters with the 'initial_params' keyword argument" 
-  
-    
-    def Fit_PDF(self, initial_params=[6,6, 0.3,7.4,0.8,0.2],
-                     model= None, fit_method = 'BFGS', nbins=None,verbose=True):
+            print("#### FIT FAILED ####")
+            print("Fit parameters not assigned.")
+            print("Try different initial parameters with the 'initial_params' keyword argument")
+
+    def Fit_PDF(self, initial_params=[6, 6, 0.3, 7.4, 0.8, 0.2],
+                model=None, fit_method='BFGS', nbins=None, verbose=True):
         '''
         Fit the PDF of the flux with a given model - teh default is a mixture 
         distribution consisting of a gamma distribution and a lognormal 
@@ -934,24 +935,24 @@ class Lightcurve(object):
                 Sets whether output text showing fit parameters is displayed.
                 Fit failure text if always displayed.
         '''
-        
+
         if model == None:
-            model = Mixture_Dist([st.gamma,st.lognorm],
-                                            [3,3],[[[2],[0]],[[2],[0],]])
+            model = Mixture_Dist([st.gamma, st.lognorm],
+                                 [3, 3], [[[2], [0]], [[2], [0], ]])
             model.default = True
-        
+
         if nbins == None:
-            nbins = OptBins(self.flux)        
+            nbins = OptBins(self.flux)
         self.bins = nbins
-        hist = np.array(np.histogram(self.flux,bins=nbins,normed=True))
-        
-        m = op.minimize(Min_PDF, initial_params, 
-                            args=(hist,model),method=fit_method)
-        
+        hist = np.array(np.histogram(self.flux, bins=nbins, normed=True))
+
+        m = op.minimize(Min_PDF, initial_params,
+                        args=(hist, model), method=fit_method)
+
         if m['success'] == True:
-            
+
             if verbose:
-                print "\n### Fit successful: ###"
+                print("\n### Fit successful: ###")
 
                 mix = False
                 try:
@@ -961,38 +962,37 @@ class Lightcurve(object):
                     mix = False
 
                 if mix:
-                    if model.default == True:                        
-                        #kappa,theta,lnmu,lnsig,weight
-                        print "\nGamma Function:"
-                        print "kappa: {}".format(m['x'][0])
-                        print "theta: {}".format(m['x'][1])
-                        print "weight: {}".format(m['x'][4])
-                        print "\nLognormal Function:"
-                        print "exp(ln(mu)): {}".format(m['x'][2])
-                        print "ln(sigma): {}".format(m['x'][3])
-                        print "weight: {}".format(1.0 - m['x'][4])
+                    if model.default == True:
+                        # kappa,theta,lnmu,lnsig,weight
+                        print("\nGamma Function:")
+                        print("kappa: {}".format(m['x'][0]))
+                        print("theta: {}".format(m['x'][1]))
+                        print("weight: {}".format(m['x'][4]))
+                        print("\nLognormal Function:")
+                        print("exp(ln(mu)): {}".format(m['x'][2]))
+                        print("ln(sigma): {}".format(m['x'][3]))
+                        print("weight: {}".format(1.0 - m['x'][4]))
                     else:
                         for p in range(len(m['x'])):
-                            print "Parameter {}: {}".format(p+1,m['x'][p])            
+                            print("Parameter {}: {}".format(p + 1, m['x'][p]))
                 else:
                     for p in range(len(m['x'])):
-                        print "Parameter {}: {}".format(p+1,m['x'][p])
-                        
-            self.pdfFit = m 
+                        print("Parameter {}: {}".format(p + 1, m['x'][p]))
+
+            self.pdfFit = m
             self.pdfModel = model
 
         else:
-            print "#### FIT FAILED ####"
-            print "Fit parameters not assigned."
-            print "Try different initial parameters with the 'initial_params' keyword argument" 
-              
-    
-    def Simulate_DE_Lightcurve(self,PSDmodel=None,PSDinitialParams=None,
-                               PSD_fit_method='Nelder-Mead',n_iter=1000, 
-                               PDFmodel=None,PDFinitialParams=None, 
-                               PDF_fit_method = 'BFGS',nbins=None,
-                               RedNoiseL=100, aliasTbin=1,randomSeed=None,
-                                   maxIterations=1000,verbose=False,size=1,LClength=None,histSample=False):
+            print("#### FIT FAILED ####")
+            print("Fit parameters not assigned.")
+            print("Try different initial parameters with the 'initial_params' keyword argument")
+
+    def Simulate_DE_Lightcurve(self, PSDmodel=None, PSDinitialParams=None,
+                               PSD_fit_method='Nelder-Mead', n_iter=1000,
+                               PDFmodel=None, PDFinitialParams=None,
+                               PDF_fit_method='BFGS', nbins=None,
+                               RedNoiseL=100, aliasTbin=1, randomSeed=None,
+                               maxIterations=1000, verbose=False, size=1, LClength=None, histSample=False):
         '''
         Simulate a lightcurve using the PSD and PDF models fitted to the
         lightcurve, with the Emmanoulopoulos algorithm. If PSD and PDF fits 
@@ -1051,51 +1051,51 @@ class Lightcurve(object):
             lc (Lightcurve object or array of Lightcurve objects)  
                 - Lightcurve object containing simulated lightcurve OR array of 
                   lightcurve objects if size > 1
-        '''                               
-        
+        '''
+
         # fit PDF and PSD if necessary 
-                           
+
         if self.psdFit == None:
-            
+
             if PSDmodel:
                 "Fitting PSD with supplied model..."
-                self.Fit_PSD( initial_params= PSDinitialParams, 
-                                 model = PSDmodel, fit_method=PSD_fit_method,
-                                     n_iter=n_iter,verbose=False)
+                self.Fit_PSD(initial_params=PSDinitialParams,
+                             model=PSDmodel, fit_method=PSD_fit_method,
+                             n_iter=n_iter, verbose=False)
             else:
-                print "PSD not fitted, fitting using defaults (bending power law)..."
+                print("PSD not fitted, fitting using defaults (bending power law)...")
                 self.Fit_PSD(verbose=False)
         if self.pdfFit == None and histSample == False:
             if PDFmodel:
                 "Fitting PDF with supplied model..."
                 self.Fit_PDF(initial_params=PDFinitialParams,
-                        model= PDFmodel, fit_method = PDF_fit_method,
-                        verbose=False, nbins=nbins)
+                             model=PDFmodel, fit_method=PDF_fit_method,
+                             verbose=False, nbins=nbins)
             else:
-                print "PDF not fitted, fitting using defaults (gamma + lognorm)"
-                self.Fit_PDF(verbose=False)    
-        
-        # check if fits were successful
-        if self.psdFit == None or (self.pdfFit == None and histSample == False): 
-            print "Simulation terminated due to failed fit(s)"
+                print("PDF not fitted, fitting using defaults (gamma + lognorm)")
+                self.Fit_PDF(verbose=False)
+
+                # check if fits were successful
+        if self.psdFit == None or (self.pdfFit == None and histSample == False):
+            print("Simulation terminated due to failed fit(s)")
             return
-            
+
         # check if standard deviation has been given
-        self.STD_Estimate(self.psdModel,self.psdFit['x'])
-        
+        self.STD_Estimate(self.psdModel, self.psdFit['x'])
+
         # simulate lightcurve
         if histSample:
             lc = Simulate_DE_Lightcurve(self.psdModel, self.psdFit['x'],
-                                                size = size,\
-                         LClength=LClength,lightcurve=self,histSample=True)
-            
+                                        size=size, \
+                                        LClength=LClength, lightcurve=self, histSample=True)
+
         else:
             lc = Simulate_DE_Lightcurve(self.psdModel, self.psdFit['x'],
-                                self.pdfModel,self.pdfFit['x'], size = size,\
-                         LClength=LClength,lightcurve=self,histSample=False)
-         
+                                        self.pdfModel, self.pdfFit['x'], size=size, \
+                                        LClength=LClength, lightcurve=self, histSample=False)
+
         return lc
-                                   
+
     def Plot_Periodogram(self):
         '''
         Plot the periodogram of the lightcurve, after calculating it if 
@@ -1104,36 +1104,36 @@ class Lightcurve(object):
         if self.periodogram == None:
             self.Periodogram()
 
-        p = plt.subplot(1,1,1)
-        plt.scatter(self.periodogram[0],self.periodogram[1])
-        
+        p = plt.subplot(1, 1, 1)
+        plt.scatter(self.periodogram[0], self.periodogram[1])
+
         if self.psdFit:
-            plx = np.logspace(np.log10(0.8*min(self.periodogram[0])),np.log10(1.2*max(self.periodogram[0])),100)          
-            mpl = self.psdModel(plx,*self.psdFit['x'])
-            plt.plot(plx,mpl,color='red',linewidth=3)
-            
+            plx = np.logspace(np.log10(0.8 * min(self.periodogram[0])), np.log10(1.2 * max(self.periodogram[0])), 100)
+            mpl = self.psdModel(plx, *self.psdFit['x'])
+            plt.plot(plx, mpl, color='red', linewidth=3)
+
         plt.title("Periodogram")
         p.set_yscale('log')
         p.set_xscale('log')
 
-        plt.xlim([0.8*min(self.periodogram[0]),1.2*max(self.periodogram[0])])
-        plt.ylim([0.8*min(self.periodogram[1]),1.2*max(self.periodogram[1])])
-        plt.subplots_adjust(left=0.05,right=0.95,top=0.95,bottom=0.05,
-                            hspace=0.3,wspace=0.3)
+        plt.xlim([0.8 * min(self.periodogram[0]), 1.2 * max(self.periodogram[0])])
+        plt.ylim([0.8 * min(self.periodogram[1]), 1.2 * max(self.periodogram[1])])
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05,
+                            hspace=0.3, wspace=0.3)
         plt.show()
 
     def Plot_Lightcurve(self):
         '''
         Plot the lightcurve.
         '''
-        #plt.errorbar(self.time,self.flux,yerr=self.errors,)
-        plt.scatter(self.time,self.flux)
+        # plt.errorbar(self.time,self.flux,yerr=self.errors,)
+        plt.scatter(self.time, self.flux)
         plt.title("Lightcurve")
-        plt.subplots_adjust(left=0.05,right=0.95,top=0.95,bottom=0.05,
-                            hspace=0.3,wspace=0.3)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05,
+                            hspace=0.3, wspace=0.3)
         plt.show()
-        
-    def Plot_PDF(self,bins=None,norm=True,force_scipy=False):
+
+    def Plot_PDF(self, bins=None, norm=True, force_scipy=False):
         '''
         Plot the probability density function of the lightcurve, and the model
         fit if present.
@@ -1141,11 +1141,11 @@ class Lightcurve(object):
 
         if self.bins == None:
             self.bins = OptBins(self.flux)
-        plt.hist(self.flux,bins=self.bins,normed=norm)
-        #kappa,theta,lnmu,lnsig,weight
+        plt.hist(self.flux, bins=self.bins, normed=norm)
+        # kappa,theta,lnmu,lnsig,weight
         if self.pdfFit:
-            x = np.arange(0,np.max(self.flux)*1.2,0.01)
-            
+            x = np.arange(0, np.max(self.flux) * 1.2, 0.01)
+
             mix = False
             scipy = False
             try:
@@ -1155,48 +1155,48 @@ class Lightcurve(object):
                 mix = False
             try:
                 if self.pdfModel.__module__ == 'scipy.stats.distributions' or \
-                    self.pdfModel.__module__ == 'scipy.stats._continuous_distns' or \
+                        self.pdfModel.__module__ == 'scipy.stats._continuous_distns' or \
                         force_scipy == True:
                     scipy = True
             except AttributeError:
                 scipy = False
 
             if mix:
-                plt.plot(x,self.pdfModel.Value(x,self.pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, self.pdfModel.Value(x, self.pdfFit['x']),
+                         'red', linewidth=3)
             elif scipy:
-                plt.plot(x,self.pdfModel.pdf(x,*self.pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, self.pdfModel.pdf(x, *self.pdfFit['x']),
+                         'red', linewidth=3)
             else:
-                plt.plot(x,self.pdfModel(x,*self.pdfFit['x']),
-                       'red', linewidth=3)  
+                plt.plot(x, self.pdfModel(x, *self.pdfFit['x']),
+                         'red', linewidth=3)
 
         plt.title("PDF")
-        plt.subplots_adjust(left=0.1,right=0.95,top=0.95,bottom=0.05,
-                            hspace=0.3,wspace=0.3)  
+        plt.subplots_adjust(left=0.1, right=0.95, top=0.95, bottom=0.05,
+                            hspace=0.3, wspace=0.3)
         plt.show()
-                
-    def Plot_Stats(self,bins=None,norm=True,force_scipy=False):
+
+    def Plot_Stats(self, bins=None, norm=True, force_scipy=False):
         '''
         Plot the lightcurve together with its probability density function and
         power spectral density.
         '''
-                    
+
         if self.periodogram == None:
             self.Periodogram()
         plt.figure()
-        plt.subplot(3,1,1)
-        plt.scatter(self.time,self.flux)
+        plt.subplot(3, 1, 1)
+        plt.scatter(self.time, self.flux)
         plt.title("Lightcurve")
-        plt.subplot(3,1,2)
+        plt.subplot(3, 1, 2)
         if bins:
-            plt.hist(self.flux,bins=bins,normed=norm)        
+            plt.hist(self.flux, bins=bins, normed=norm)
         else:
             if self.bins == None:
                 self.bins = OptBins(self.flux)
-            plt.hist(self.flux,bins=self.bins,normed=norm)        
+            plt.hist(self.flux, bins=self.bins, normed=norm)
         if self.pdfFit:
-            x = np.arange(0,np.max(self.flux)*1.2,0.01)
+            x = np.arange(0, np.max(self.flux) * 1.2, 0.01)
 
             mix = False
             scipy = False
@@ -1207,39 +1207,39 @@ class Lightcurve(object):
                 mix = False
             try:
                 if self.pdfModel.__module__ == 'scipy.stats.distributions' or \
-                    self.pdfModel.__module__ == 'scipy.stats._continuous_distns' or \
+                        self.pdfModel.__module__ == 'scipy.stats._continuous_distns' or \
                         force_scipy == True:
                     scipy = True
             except AttributeError:
                 scipy = False
 
             if mix:
-                plt.plot(x,self.pdfModel.Value(x,self.pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, self.pdfModel.Value(x, self.pdfFit['x']),
+                         'red', linewidth=3)
             elif scipy:
-                plt.plot(x,self.pdfModel.pdf(x,*self.pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, self.pdfModel.pdf(x, *self.pdfFit['x']),
+                         'red', linewidth=3)
             else:
-                plt.plot(x,self.pdfModel(x,*self.pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, self.pdfModel(x, *self.pdfFit['x']),
+                         'red', linewidth=3)
         plt.title("PDF")
-        p=plt.subplot(3,1,3)
-        plt.scatter(self.periodogram[0],self.periodogram[1])
+        p = plt.subplot(3, 1, 3)
+        plt.scatter(self.periodogram[0], self.periodogram[1])
         if self.psdFit:
-            plx = np.logspace(np.log10(0.8*min(self.periodogram[0])),np.log10(1.2*max(self.periodogram[0])),100)            
-            #print self.psdFit['x']
-            mpl = self.psdModel(plx,*self.psdFit['x'])
-            plt.plot(plx,mpl,color='red',linewidth=3)  
+            plx = np.logspace(np.log10(0.8 * min(self.periodogram[0])), np.log10(1.2 * max(self.periodogram[0])), 100)
+            # print( self.psdFit['x']
+            mpl = self.psdModel(plx, *self.psdFit['x'])
+            plt.plot(plx, mpl, color='red', linewidth=3)
         plt.title("Periodogram")
         p.set_yscale('log')
         p.set_xscale('log')
-        plt.xlim([0.8*min(self.periodogram[0]),1.2*max(self.periodogram[0])])
-        plt.ylim([0.8*min(self.periodogram[1]),1.2*max(self.periodogram[1])])
-        plt.subplots_adjust(left=0.05,right=0.95,top=0.95,bottom=0.05,
-                            hspace=0.3,wspace=0.3) 
+        plt.xlim([0.8 * min(self.periodogram[0]), 1.2 * max(self.periodogram[0])])
+        plt.ylim([0.8 * min(self.periodogram[1]), 1.2 * max(self.periodogram[1])])
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05,
+                            hspace=0.3, wspace=0.3)
         plt.show()
-        
-    def Save_Periodogram(self,filename,dataformat='%.10e'):
+
+    def Save_Periodogram(self, filename, dataformat='%.10e'):
         '''
         Save the lightcurve's Periodogram as a text file with columns of 
         frequency and power.
@@ -1254,12 +1254,12 @@ class Lightcurve(object):
             of strings,optional)
         '''
         if self.periodogram == None:
-            self.Periodogram()        
-        
-        data = np.array([self.periodogram[0],self.periodogram[1]]).T
-        np.savetxt(filename,data,fmt=dataformat,header="Frequency\tPower")
-        
-    def Save_Lightcurve(self,filename,dataformat='%.10e'):
+            self.Periodogram()
+
+        data = np.array([self.periodogram[0], self.periodogram[1]]).T
+        np.savetxt(filename, data, fmt=dataformat, header="Frequency\tPower")
+
+    def Save_Lightcurve(self, filename, dataformat='%.10e'):
         '''
         Save the lightcurve as a text file with columns of time and flux.
         
@@ -1272,13 +1272,14 @@ class Lightcurve(object):
             (string or list       file, using standard python formatting syntax
             of strings,optional)
         '''
-        
-        data = np.array([self.time,self.flux]).T
-        np.savetxt(filename,data,fmt=dataformat,header="Time\tFlux")
 
-def Comparison_Plots(lightcurves,bins=None,norm=True, names=None,
-                overplot=False,colors=['blue','red','green','black','orange'],\
-                    force_scipy=False):
+        data = np.array([self.time, self.flux]).T
+        np.savetxt(filename, data, fmt=dataformat, header="Time\tFlux")
+
+
+def Comparison_Plots(lightcurves, bins=None, norm=True, names=None,
+                     overplot=False, colors=['blue', 'red', 'green', 'black', 'orange'], \
+                     force_scipy=False):
     '''
     Plot multiple lightcurves, their PDFs and PSDs together, for comparison
     
@@ -1290,42 +1291,41 @@ def Comparison_Plots(lightcurves,bins=None,norm=True, names=None,
         overplot (bool, optional)        - overplot different data sets
         colors (list, str, optional)     - list of colours when overplotting
     '''
-   
+
     if overplot:
         n = 1
     else:
         n = len(lightcurves)
-        
+
     if names == None or len(names) != n:
-        names = ["Lightcurve {}".format(l) for l in range(1,n+1)]
+        names = ["Lightcurve {}".format(l) for l in range(1, n + 1)]
     i = 0
     c = 0
 
     plt.figure()
     for lc in lightcurves:
-                
 
         # calculate periodogram if not yet done
         if lc.periodogram == None:
             lc.Periodogram()
-           
+
         # lightcurve
-        plt.subplot(3,n,1+i)
-        plt.scatter(lc.time,lc.flux,color=colors[c])
-        plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
+        plt.subplot(3, n, 1 + i)
+        plt.scatter(lc.time, lc.flux, color=colors[c])
+        plt.ticklabel_format(style='sci', axis='x', scilimits=(0, 0))
         plt.title(names[i])
-        
+
         # PDF
-        plt.subplot(3,n,n+1+i)
-        
+        plt.subplot(3, n, n + 1 + i)
+
         # calculate/get optimum bins if not given
         if bins == None:
             if lc.bins == None:
                 lc.bins = OptBins(lc.flux)
             bins = lc.bins
-        plt.hist(lc.flux,bins=bins,normed=norm,color=colors[c] )
+        plt.hist(lc.flux, bins=bins, normed=norm, color=colors[c])
         if lightcurves[-1].pdfFit:
-            x = np.arange(0,np.max(lightcurves[-1].flux)*1.2,0.01)
+            x = np.arange(0, np.max(lightcurves[-1].flux) * 1.2, 0.01)
 
             mix = False
             scipy = False
@@ -1336,50 +1336,51 @@ def Comparison_Plots(lightcurves,bins=None,norm=True, names=None,
                 mix = False
             try:
                 if lightcurves[-1].pdfmodel.__module__ == \
-                                                'scipy.stats.distributions' or \
-                    lightcurves[-1].pdfmodel.__module__ == \
-                                           'scipy.stats._continuous_distns' or \
+                        'scipy.stats.distributions' or \
+                        lightcurves[-1].pdfmodel.__module__ == \
+                        'scipy.stats._continuous_distns' or \
                         force_scipy == True:
                     scipy = True
             except AttributeError:
                 scipy = False
 
             if mix:
-                plt.plot(x,lightcurves[-1].pdfModel.Value(x,lightcurves[-1].pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, lightcurves[-1].pdfModel.Value(x, lightcurves[-1].pdfFit['x']),
+                         'red', linewidth=3)
             elif scipy:
-                plt.plot(x,lightcurves[-1].pdfModel.pdf(x,lightcurves[-1].pdfFit['x']),
-                       'red', linewidth=3) 
+                plt.plot(x, lightcurves[-1].pdfModel.pdf(x, lightcurves[-1].pdfFit['x']),
+                         'red', linewidth=3)
             else:
-                plt.plot(x,lightcurves[-1].pdfModel(x,*lightcurves[-1].pdfFit['x']),
-                       'red', linewidth=3 ) 
+                plt.plot(x, lightcurves[-1].pdfModel(x, *lightcurves[-1].pdfFit['x']),
+                         'red', linewidth=3)
         plt.title("PDF")
-        
+
         # PSD
-        p=plt.subplot(3,n,2*n+1+i)
-        plt.scatter(lc.periodogram[0],lc.periodogram[1],color=colors[c])
+        p = plt.subplot(3, n, 2 * n + 1 + i)
+        plt.scatter(lc.periodogram[0], lc.periodogram[1], color=colors[c])
         if lightcurves[-1].psdFit:
-            plx = np.logspace(np.log10(0.8*min(lc.periodogram[0])),np.log10(1.2*max(lc.periodogram[0])),100)          
-            mpl = lc.psdModel(plx,*lightcurves[-1].psdFit['x'])
-            plt.plot(plx,mpl,color='red',linewidth=3) 
+            plx = np.logspace(np.log10(0.8 * min(lc.periodogram[0])), np.log10(1.2 * max(lc.periodogram[0])), 100)
+            mpl = lc.psdModel(plx, *lightcurves[-1].psdFit['x'])
+            plt.plot(plx, mpl, color='red', linewidth=3)
         plt.title("Periodogram")
         p.set_yscale('log')
         p.set_xscale('log')
-        plt.xlim([0.8*min(lc.periodogram[0]),1.2*max(lc.periodogram[0])])
-        plt.ylim([0.8*min(lc.periodogram[1]),1.2*max(lc.periodogram[1])])
+        plt.xlim([0.8 * min(lc.periodogram[0]), 1.2 * max(lc.periodogram[0])])
+        plt.ylim([0.8 * min(lc.periodogram[1]), 1.2 * max(lc.periodogram[1])])
 
         if overplot:
             c += 1
         else:
             i += 1
-            
+
     # adjust plots
-    plt.subplots_adjust(left=0.05,right=0.95,top=0.95,bottom=0.05,
-                            hspace=0.3,wspace=0.3)      
-    plt.show()    
-        
-def Load_Lightcurve(fileroute,tbin,\
-                        time_col=None,flux_col=None,error_col=None,extention=1,element=None):
+    plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05,
+                        hspace=0.3, wspace=0.3)
+    plt.show()
+
+
+def Load_Lightcurve(fileroute, tbin, \
+                    time_col=None, flux_col=None, error_col=None, extention=1, element=None):
     '''
     Loads a data lightcurve as a 'Lightcurve' object, assuming a text file
     with three columns. Can deal with headers and blank lines.
@@ -1404,8 +1405,8 @@ def Load_Lightcurve(fileroute,tbin,\
         lc (lightcurve)         
             - output lightcurve object
     '''
-    two = False    
-            
+    two = False
+
     if time_col or flux_col:
         if (time_col != None and flux_col != None):
             try:
@@ -1415,43 +1416,43 @@ def Load_Lightcurve(fileroute,tbin,\
                 time = data.field(time_col)
 
                 if element:
-                    flux = data.field(flux_col)[:,element]
+                    flux = data.field(flux_col)[:, element]
                 else:
                     flux = data.field(flux_col)
 
                 if error_col != None:
                     if element:
-                        error = data.field(error_col)[:,element]
+                        error = data.field(error_col)[:, element]
                     else:
                         error = data.field(error_col)
                 else:
                     two = True
 
             except IOError:
-                print "*** LOAD FAILED ***"
-                print "Input file not found"
+                print("*** LOAD FAILED ***")
+                print("Input file not found")
                 return
             except KeyError:
-                print "*** LOAD FAILED ***"
-                print "One or more fits columns not found in fits file"
+                print("*** LOAD FAILED ***")
+                print("One or more fits columns not found in fits file")
                 return
-        else:            
-            print "*** LOAD FAILED ***"
-            print "time_col and flux_col must be defined to load data from fits."
+        else:
+            print("*** LOAD FAILED ***")
+            print("time_col and flux_col must be defined to load data from fits.")
             return
     else:
         try:
-            f = open(fileroute,'r')
+            f = open(fileroute, 'r')
 
-            time,flux,error = [],[],[]
+            time, flux, error = [], [], []
             success = False
-            read = 0    
-            
+            read = 0
+
             for line in f:
                 columns = line.split()
-                    
+
                 if len(columns) == 3:
-                    t,f,e = columns
+                    t, f, e = columns
 
                     try:
                         time.append(float(t))
@@ -1462,7 +1463,7 @@ def Load_Lightcurve(fileroute,tbin,\
                     except ValueError:
                         continue
                 elif len(columns) == 2:
-                    t,f = columns
+                    t, f = columns
 
                     try:
                         time.append(float(t))
@@ -1473,26 +1474,27 @@ def Load_Lightcurve(fileroute,tbin,\
                     except ValueError:
                         continue
             if success:
-                print "Read {} lines of data".format(read)
+                print("Read {} lines of data".format(read))
             else:
-                print "*** LOAD FAILED ***"
-                print "Input file must be a text file with 3 columns (time,flux,error)"
+                print("*** LOAD FAILED ***")
+                print("Input file must be a text file with 3 columns (time,flux,error)")
                 return
 
         except IOError:
-            print "*** LOAD FAILED ***"
-            print "Input file not found"
+            print("*** LOAD FAILED ***")
+            print("Input file not found")
             return
-       
+
     if two:
-        lc = Lightcurve(np.array(time), np.array(flux),tbin)
+        lc = Lightcurve(np.array(time), np.array(flux), tbin)
     else:
-        lc = Lightcurve(np.array(time), np.array(flux),tbin, np.array(error))
+        lc = Lightcurve(np.array(time), np.array(flux), tbin, np.array(error))
     return lc
 
-def Simulate_TK_Lightcurve(PSDmodel,PSDparams,lightcurve=None,
-                           tbin = None, length = None, mean = 0.0, std = 1.0,
-                           RedNoiseL=100, aliasTbin=1,randomSeed=None):
+
+def Simulate_TK_Lightcurve(PSDmodel, PSDparams, lightcurve=None,
+                           tbin=None, length=None, mean=0.0, std=1.0,
+                           RedNoiseL=100, aliasTbin=1, randomSeed=None):
     '''
     Creates a (simulated) lightcurve object from another (data) lightcurve 
     object, using the Timmer & Koenig (1995) method. The estimated standard
@@ -1532,52 +1534,53 @@ def Simulate_TK_Lightcurve(PSDmodel,PSDparams,lightcurve=None,
         lc (Lightcurve)           
                     - Lightcurve object containing simulated LC
     '''
-   
+
     if type(lightcurve) == Lightcurve:
         if tbin == None:
             tbin = lightcurve.tbin
         if length == None:
             length = lightcurve.length
         if mean == None:
-            mean  = lightcurve.mean
+            mean = lightcurve.mean
         if std == None:
             if lightcurve.std_est == None:
                 std = lightcurve.std
             else:
-                std = lightcurve.std    
+                std = lightcurve.std
 
         time = lightcurve.time
-        
+
     else:
-        time = np.arange(0,length*tbin)    
-        
+        time = np.arange(0, length * tbin)
+
         if tbin == None:
             tbin = 1
         if length == None:
             length = 1000
         if mean == None:
-            mean  = 1
+            mean = 1
         if std == None:
             std = 1
-            
+
     shortLC, fft, periodogram = \
-        TimmerKoenig(RedNoiseL,aliasTbin,randomSeed,tbin,
-                     length, PSDmodel,PSDparams,std,mean)
-    lc = Lightcurve(time,shortLC,tbin=tbin)
-        
+        TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin,
+                     length, PSDmodel, PSDparams, std, mean)
+    lc = Lightcurve(time, shortLC, tbin=tbin)
+
     lc.fft = fft
     lc.periodogram = periodogram
 
-    lc.psdModel =   PSDmodel
-    lc.psdFit = {'x':PSDparams}
+    lc.psdModel = PSDmodel
+    lc.psdFit = {'x': PSDparams}
 
     return lc
 
-def Simulate_DE_Lightcurve(PSDmodel,PSDparams,PDFmodel=None, PDFparams=None,
-                             lightcurve = None, tbin = None, LClength = None, 
-                               maxFlux = None,
-                                 RedNoiseL=100, aliasTbin=1,randomSeed=None,
-                                   maxIterations=1000,verbose=False,size=1,histSample=False):
+
+def Simulate_DE_Lightcurve(PSDmodel, PSDparams, PDFmodel=None, PDFparams=None,
+                           lightcurve=None, tbin=None, LClength=None,
+                           maxFlux=None,
+                           RedNoiseL=100, aliasTbin=1, randomSeed=None,
+                           maxIterations=1000, verbose=False, size=1, histSample=False):
     '''
     Creates a (simulated) lightcurve object from another (data) lightcurve 
     object, using the Emmanoulopoulos (2013) method. The estimated standard
@@ -1643,56 +1646,53 @@ def Simulate_DE_Lightcurve(PSDmodel,PSDparams,PDFmodel=None, PDFparams=None,
         if tbin == None:
             tbin = lightcurve.tbin
         #### NOT NEEDED #####
-        #if LClength == None:
+        # if LClength == None:
         #    LClength = lightcurve.length
-        #if mean == None:
-        #mean  = lightcurve.mean
-        #if std == None:
-        #if lightcurve.std_est == None:
+        # if mean == None:
+        # mean  = lightcurve.mean
+        # if std == None:
+        # if lightcurve.std_est == None:
         #    std = lightcurve.std
-        #else:
+        # else:
         #    std = lightcurve.std    
 
         time = lightcurve.time
-        
-        
+
         if maxFlux == None:
             maxFlux = max(lightcurve.flux)
-        
-    else: 
+
+    else:
         if tbin == None:
             tbin = 1
         if LClength == None:
             LClength = 100
         #### NOT NEEDED #####
-        #if mean == None:
+        # if mean == None:
         #    mean  = 1
-        #if std == None:
+        # if std == None:
         #    std = 1    
 
-        time = np.arange(0,LClength*tbin)             
-    
-    for n in range(size): 
-                   
+        time = np.arange(0, LClength * tbin)
+
+    for n in range(size):
+
         surrogate, PSDlast, shortLC, periodogram, fft = \
-            EmmanLC(time, RedNoiseL,aliasTbin,randomSeed, tbin,
-                            PSDmodel, PSDparams, PDFmodel, PDFparams, maxFlux,
-                                maxIterations,verbose,LClength,histSample=lightcurve)
-        lc = Lightcurve(surrogate[0],surrogate[1],tbin=tbin)
+            EmmanLC(time, RedNoiseL, aliasTbin, randomSeed, tbin,
+                    PSDmodel, PSDparams, PDFmodel, PDFparams, maxFlux,
+                    maxIterations, verbose, LClength, histSample=lightcurve)
+        lc = Lightcurve(surrogate[0], surrogate[1], tbin=tbin)
         lc.fft = fft
         lc.periodogram = PSDlast
-        
-        lc.psdModel =   PSDmodel
-        lc.psdFit = {'x':PSDparams}
+
+        lc.psdModel = PSDmodel
+        lc.psdFit = {'x': PSDparams}
         if histSample == False:
             lc.pdfModel = PDFmodel
-            lc.pdfFit = {'x':PDFparams}
-        
-        lcs = np.append(lcs,lc)
-        
+            lc.pdfFit = {'x': PDFparams}
+
+        lcs = np.append(lcs, lc)
+
     if n > 1:
         return lcs
     else:
         return lc
-
-
