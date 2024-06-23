@@ -29,28 +29,28 @@ RedNoiseL, aliasTbin, tbin = 100, 1, 100
 # --------- Commands ---------------
 
 # load data lightcurve
-datalc = Load_Lightcurve(route + datfile, tbin)
+datalc = load_lightcurve(route + datfile, tbin)
 
 
 def Fix_BL(v, A, v_bend, a_high, c):
-    p = BendingPL(v, A, v_bend, 1.1, a_high, c)
+    p = bending_pl(v, A, v_bend, 1.1, a_high, c)
     return p
 
 
 datalc.Fit_PSD(initial_params=[1, 0.001, 2.5, 0], model=Fix_BL)
 
 # create mixture distribution to fit to PDF
-mix_model = Mixture_Dist([st.gamma, st.lognorm], [3, 3], [[[2], [0]], [[2], [0], ]])
+mix_model = MixtureDist([st.gamma, st.lognorm], [3, 3], [[[2], [0]], [[2], [0], ]])
 
 # estimate underlying variance of data light curve
 datalc.STD_Estimate()
 
 # simulate artificial light curve with Timmer & Koenig method
-tklc = Simulate_TK_Lightcurve(BendingPL, (A, v_bend, a_low, a_high, c), lightcurve=datalc,
-                              RedNoiseL=RedNoiseL, aliasTbin=aliasTbin)
+tklc = Simulate_TK_Lightcurve(bending_pl, (A, v_bend, a_low, a_high, c), lightcurve=datalc,
+                              red_noise_l=RedNoiseL, alias_t_bin=aliasTbin)
 
 # simulate artificial light curve with Emmanoulopoulos method, scipy distribution
-delc_mod = Simulate_DE_Lightcurve(BendingPL, (A, v_bend, a_low, a_high, c),
+delc_mod = Simulate_DE_Lightcurve(bending_pl, (A, v_bend, a_low, a_high, c),
                                   mix_model, (kappa, theta, lnsig, np.exp(lnmu),
                                               weight, 1 - weight), lightcurve=datalc)
 
@@ -63,6 +63,6 @@ delc = datalc.Simulate_DE_Lightcurve()
 delc.Save_Lightcurve('lightcurve.dat')
 
 # plot lightcurves and their PSDs ands PDFs for comparison
-Comparison_Plots([datalc, tklc, delc, delc_mod], names=["Data LC", "Timmer \& Koenig",
+comparison_plots([datalc, tklc, delc, delc_mod], names=["Data LC", "Timmer \& Koenig",
                                                         "Emmanoulopoulos from model", "Emmanoulopoulos from data"],
                  bins=25)

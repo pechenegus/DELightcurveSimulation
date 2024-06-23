@@ -270,28 +270,27 @@ datalc.Plot_Lightcurve()
 
 ```python
 # estimate underlying variance od data light curve
-datalc.STD_Estimate()
-
+datalc.std_estimate()
 
 # simulate artificial light curve with Emmanoulopoulos method, using the PSD and PDF of the data
-delc = datalc..Simulate_DE_Lightcurve() # defaults to bending PL and mix of gamma and lognormal dist.
+delc = datalc..Simulate_DE_Lightcurve()  # defaults to bending PL and mix of gamma and lognormal dist.
 
 # simulate artificial light curve with Timmer & Koenig method
-tklc = Simulate_TK_Lightcurve(datalc,BendingPL, (A,v_bend,a_low,a_high,c),
-                                RedNoiseL,aliasTbin,RandomSeed)
+tklc = Simulate_TK_Lightcurve(datalc, BendingPL, (A, v_bend, a_low, a_high, c),
+                              RedNoiseL, aliasTbin, RandomSeed)
 
 # simulate artificial light curve with Emmanoulopoulos method, scipy distribution
-delc2 = Simulate_DE_Lightcurve(datalc,BendingPL, (A,v_bend,a_low,a_high,c),
-                                ([st.gamma,st.lognorm],[[kappa,0, theta],\
-                                    [lnsig,0, np.exp(lnmu)]],[weight,1-weight]))
+delc2 = Simulate_DE_Lightcurve(datalc, BendingPL, (A, v_bend, a_low, a_high, c),
+                               ([st.gamma, st.lognorm], [[kappa, 0, theta],
+                                                         [lnsig, 0, np.exp(lnmu)]], [weight, 1 - weight]))
 
 # simulate artificial light curve with Emmanoulopoulos method, custom distribution
-delc3 = Simulate_DE_Lightcurve(datalc,BendingPL, (A,v_bend,a_low,a_high,c),
-                                ([[Gamma,LogNormal],[[kappa, theta],\
-                                  [lnmu, lnsig]],[weight,1-weight]]),MixtureDist)                                
+delc3 = Simulate_DE_Lightcurve(datalc, BendingPL, (A, v_bend, a_low, a_high, c),
+                               ([[Gamma, LogNormal], [[kappa, theta],
+                                                      [lnmu, lnsig]], [weight, 1 - weight]]), MixtureDist)
 
 # plot lightcurves and their PSDs ands PDFs for comparison
-Comparison_Plots([datalc,tklc,delc])
+Comparison_Plots([datalc, tklc, delc])
 ```
 
 ![alt tag] (https://raw.githubusercontent.com/samconnolly/DELightcurveSimulation/master/ComparisonPlots.png)
