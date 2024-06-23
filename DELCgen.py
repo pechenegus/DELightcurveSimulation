@@ -458,8 +458,8 @@ def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength, \
 
     # -------- Add complex Gaussian noise to PL --------------------------------
     rnd.seed(randomSeed)
-    real = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) / 2))
-    imag = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) / 2))
+    real = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) // 2))
+    imag = (np.sqrt(powerlaw * 0.5)) * rnd.normal(0, 1, ((RedNoiseL * LClength) // 2))
     positive = np.vectorize(complex)(real, imag)  # array of +ve, complex nos
     noisypowerlaw = np.append(positive, positive.conjugate()[::-1])
     znoisypowerlaw = np.insert(noisypowerlaw, 0, complex(0.0, 0.0))  # add 0
@@ -487,7 +487,7 @@ def TimmerKoenig(RedNoiseL, aliasTbin, randomSeed, tbin, LClength, \
 
     periodogram = np.absolute(fft) ** 2.0 * ((2.0 * tbin * aliasTbin * RedNoiseL) / \
                                              (LClength * (np.mean(lightcurve) ** 2)))
-    shortPeriodogram = np.take(periodogram, range(1, LClength / 2 + 1))
+    shortPeriodogram = np.take(periodogram, range(1, LClength // 2 + 1))
     # shortFreq = np.take(frequency,range(1,LClength/2 +1))
     shortFreq = np.arange(1.0, (LClength) / 2 + 1) / (LClength * tbin)
     shortPeriodogram = [shortFreq, shortPeriodogram]
@@ -661,7 +661,7 @@ def EmmanLC(time, RedNoiseL, aliasTbin, RandomSeed, tbin,
         ffti = ft.fft(surrogate[1])
 
         PSDlast = ((2.0 * tbin) / (length * (mean ** 2))) * np.absolute(ffti) ** 2
-        PSDlast = [periodogram[0], np.take(PSDlast, range(1, length / 2 + 1))]
+        PSDlast = [periodogram[0], np.take(PSDlast, range(1, length // 2 + 1))]
 
         fftAdj = np.absolute(fft) * (np.cos(np.angle(ffti)) \
                                      + 1j * np.sin(np.angle(ffti)))  # adjust fft
@@ -670,7 +670,7 @@ def EmmanLC(time, RedNoiseL, aliasTbin, RandomSeed, tbin,
 
         PSDLCAdj = ((2.0 * tbin) / (length * np.mean(LCadj) ** 2.0)) \
                    * np.absolute(ft.fft(LCadj)) ** 2
-        PSDLCAdj = [periodogram[0], np.take(PSDLCAdj, range(1, length / 2 + 1))]
+        PSDLCAdj = [periodogram[0], np.take(PSDLCAdj, range(1, length // 2 + 1))]
         sortIndices = np.argsort(LCadj[1])
         sortPos = np.argsort(sortIndices)
         ampAdj = sortdist[sortPos]
@@ -818,7 +818,7 @@ class Lightcurve(object):
                       * np.absolute(np.real(self.fft)) ** 2
         freq = np.arange(1, self.length / 2 + 1).astype(float) / \
                (self.length * self.tbin)
-        shortPeriodogram = np.take(periodogram, np.arange(1, self.length / 2 + 1))
+        shortPeriodogram = np.take(periodogram, np.arange(1, self.length // 2 + 1))
         self.periodogram = [freq, shortPeriodogram]
 
         return self.periodogram
@@ -944,7 +944,7 @@ class Lightcurve(object):
         if nbins == None:
             nbins = OptBins(self.flux)
         self.bins = nbins
-        hist = np.array(np.histogram(self.flux, bins=nbins, normed=True))
+        hist = np.array(np.histogram(self.flux,bins=nbins,density=True))
 
         m = op.minimize(Min_PDF, initial_params,
                         args=(hist, model), method=fit_method)
